@@ -27,7 +27,8 @@ class User:
                 "pub_likes": 0
             }
             self.notify("Registration successful.")
-            
+        
+        ## 
         print(self.public_post)
         print(self.accounts)
         
@@ -71,6 +72,7 @@ class Poster(User):
         self.public_post[self.current_user]["pub_post"].append({"post": post, "likes": 0})
         self.notify("Post created.")
 
+        ##
         print(self.accounts)
         print(self.public_post)
         
