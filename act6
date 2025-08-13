@@ -1,0 +1,213 @@
+#asd
+class User:  
+    def __init__(self):
+        self.accounts = {}  
+        self.current_user = None
+        self.public_post = {}
+
+    def notify(self, message):
+        print("\n--" + message + "--\n")
+
+    def register(self):
+        print("\n--- Register ---")
+        username = input("Enter username: ")
+        password = input("Enter password: ")
+
+        if username in self.accounts:
+            self.notify("Username already exists.")
+        else:
+            self.accounts[username] = {
+                "password": password,
+                "post": [],
+                "likes": 0
+            }
+            self.public_post[username] = {
+                "username": username,
+                "pub_post": [],
+                "pub_likes": 0
+            }
+            self.notify("Registration successful.")
+            
+        print(self.public_post)
+        print(self.accounts)
+        
+    def login(self):
+        print("\n--- Login ---")
+        username = input("Enter username: ")
+        password = input("Enter password: ")
+
+        if username in self.accounts and self.accounts[username]["password"] == password:
+            self.current_user = username
+            self.notify(f"Welcome, {username}!")
+            return True
+        elif username in self.accounts:
+            self.notify("Wrong password.")
+        else:
+            self.notify("User not found.")
+        return False
+
+    def change_password(self):
+        if not self.current_user:
+            self.notify("No user logged in.")
+            return
+
+        print("\n--- Change Password ---")
+        new_password = input("Enter new password: ")
+        self.accounts[self.current_user]["password"] = new_password
+        self.notify("Password changed successfully. Returning to main menu...")
+
+        # Force logout and go back to main menu
+        self.current_user = None
+
+
+class Poster(User):
+    def __init__(self):
+        super().__init__()   
+
+    def post(self):
+        print("\n--- Create a Post ---")
+        post = input("Enter post: ")
+        self.accounts[self.current_user]["post"].append({"post": post, "likes": 0})
+        self.public_post[self.current_user]["pub_post"].append({"post": post, "likes": 0})
+        self.notify("Post created.")
+
+        print(self.accounts)
+        print(self.public_post)
+        
+
+class Liker(User):
+    def __init__(self):
+        super().__init__()
+
+    def likes(self):
+        print("-----Like a Post-----")
+        posts = [
+            (uname, pid, postdata)
+            for uname, user_public in self.public_post.items()
+            for pid, postdata in enumerate(user_public["pub_post"])
+        ]
+        if not posts:
+            print("No posts available to like.")
+            return
+
+        for idx, (uname, pid, postdata) in enumerate(posts):
+            print(f"[{idx}] {uname}: {postdata['post']} (likes: {postdata['likes']})")
+
+        choice = input("Enter the number of the post you want to like: ")
+        if not (choice.isdigit() and 0 <= int(choice) < len(posts)):
+            self.notify("Invalid input.")
+            return
+
+        uname, pid, postdata = posts[int(choice)]
+        self.public_post[uname]["pub_post"][pid]["likes"] += 1
+        if uname in self.accounts and pid < len(self.accounts[uname]["post"]):
+            self.accounts[uname]["post"][pid]["likes"] += 1
+        self.notify(f"You liked {uname}'s post: \"{postdata['post']}\"")
+
+
+class Comments(User):
+    def __init__(self):
+        super().__init__() 
+    
+    def comments(self):
+        print("-----Add a Comment-----")
+        posts = [
+            (uname, pid, postdata)
+            for uname, user_public in self.public_post.items()
+            for pid, postdata in enumerate(user_public["pub_post"])
+        ]           
+        if not posts:
+            print("No posts available to comment on.")
+            return  
+
+        for idx, (uname, pid, postdata) in enumerate(posts):
+            print(f"[{idx}] {uname}: {postdata['post']} (likes: {postdata['likes']})")  
+        choice = input("Enter the number of the post you want to comment on: ")
+        if not (choice.isdigit() and 0 <= int(choice) < len(posts)):
+            self.notify("Invalid input.")
+            return      
+
+        uname, pid, postdata = posts[int(choice)]
+        comment = input("Enter your comment: ")     
+        if "comments" not in postdata:
+            postdata["comments"] = []       
+        postdata["comments"].append(comment)
+        self.notify(f"You commented on {uname}'s post: \"{postdata['post']}\" with \"{comment}\"")  
+
+
+class SocialUser(Poster, Liker, Comments):
+    def __init__(self):
+        super().__init__()
+        
+    def view_post(self):
+        print("-----Viewing Posts----")
+        
+        for names in self.public_post:
+            print(f"{names}'s posts:")
+            
+            if not self.public_post[names]["pub_post"]:
+                print(f"---{names} has not yet posted anything.---")
+            else:
+                for posts in self.public_post[names]["pub_post"]:
+                    print(f" - post: {posts['post']} (likes: {posts['likes']}) (comments: {posts.get('comments', [])})")
+            print()
+
+
+class mainFunction(SocialUser):  
+    def __init__(self):
+        super().__init__()
+    
+    def user_menu(self):
+        while True:
+            print("\n--- Account Menu ---")
+            print("[1] Create Post")
+            print("[2] View Posts")
+            print("[3] Like a post")
+            print("[4] Add Comment")
+            print("[5] Change Password")
+            print("[6] Logout")
+
+            choice = input("Choose number: ")
+
+            if choice == "1":
+                self.post()
+            elif choice == "2":
+                self.view_post()
+            elif choice == "3":
+                self.likes()
+            elif choice == "4":
+                self.comments()
+            elif choice == "5":
+                self.change_password()
+                if not self.current_user:  # if password change logs out user
+                    break
+            elif choice == "6":
+                self.notify("Logging out...")
+                self.current_user = None
+                break
+            else:
+                self.notify("Invalid choice.")
+
+    def main(self):
+        while True:
+            print("\n--- Main Menu ---")
+            print("[1] Register")
+            print("[2] Login")
+            print("[3] Exit")
+
+            choice = input("Choose number: ")
+
+            if choice == "1":
+                self.register()
+            elif choice == "2":
+                if self.login():
+                    self.user_menu()
+            elif choice == "3":
+                self.notify("Goodbye!")
+                break
+            else:
+                self.notify("Invalid choice.")
+
+
+system = mainFunction()
+system.main()
